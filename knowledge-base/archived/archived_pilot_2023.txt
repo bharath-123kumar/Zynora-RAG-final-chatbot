@@ -1,0 +1,7 @@
+# [ARCHIVED - SUPERSEDED RECORD] 2023 Legacy Transit Protocol
+
+NOTICE: This document is ARCHIVED and superseded.
+Under Zyngram Knowledge Governance Policy, archived records are maintained for compliance audits only and are excluded from active RAG indexing.
+
+Legacy Protocol: 2023 manual clipboard tracking at Point facilities. Deprecated following deployment of Zyngram Nexus Cloud.
+Status: ARCHIVED

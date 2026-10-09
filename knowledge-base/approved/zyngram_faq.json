@@ -1,0 +1,29 @@
+{
+  "title": "Zyngram Frequently Asked Questions",
+  "category": "Frequently Asked Questions",
+  "version": "1.0",
+  "status": "ACTIVE IN RAG",
+  "source": "knowledge-base/approved/zyngram_faq.json",
+  "faqs": [
+    {
+      "question": "What is the purpose of Zynora AI?",
+      "answer": "Zynora AI is an internal Retrieval-Augmented Generation assistant engineered to provide staff and franchise operators with verified, grounded, and policy-compliant operational answers without using external LLM APIs."
+    },
+    {
+      "question": "How do physical facilities escalate urgent logistical bottlenecks?",
+      "answer": "Operational bottlenecks escalate strictly upward along the physical franchise hierarchy from Point to Center, then to Hub, then to Command, and ultimately to HQ."
+    },
+    {
+      "question": "What is the digital equivalent of a physical distribution Hub?",
+      "answer": "In the digital franchise hierarchy, the Territory tier serves as the primary regional routing cluster, paralleling the distribution orchestration of a physical Hub."
+    },
+    {
+      "question": "How are unapproved drafts handled by the chatbot?",
+      "answer": "Unapproved drafts and archived documents are strictly filtered out of the retrieval index and are never accessible during chat generation."
+    },
+    {
+      "question": "What happens when an inquiry cannot be answered from approved documentation?",
+      "answer": "When sufficient approved documentation is unavailable, Zynora outputs the exact fallback statement: 'I couldn\\'t find this information in the approved Zyngram knowledge base.'"
+    }
+  ]
+}

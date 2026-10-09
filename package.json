@@ -1,0 +1,31 @@
+{
+  "name": "zynora-rag-chatbot",
+  "version": "1.0.0",
+  "description": "Zynora - Zyngram Internal RAG Chatbot System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "setup": "node scripts/setup_db.js && node scripts/seed_knowledge.js",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev": "node scripts/run_dev.js",
+    "start": "node backend/server.js",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:frontend",
+    "test": "node tests/testRunner.js",
+    "test:rag": "node tests/ragEvaluationSuite.js",
+    "test:security": "node tests/security.test.js",
+    "test:api": "node tests/apiIntegration.test.js"
+  },
+  "keywords": [
+    "rag",
+    "chatbot",
+    "zyngram",
+    "ai-engineer",
+    "react",
+    "nodejs",
+    "postgresql"
+  ],
+  "author": "Zyngram AI Engineering Team",
+  "license": "UNLICENSED"
+}
