@@ -20,11 +20,18 @@ async function startServer() {
 
     const PORT = config.PORT;
     const server = app.listen(PORT, () => {
+      const publicUrl = process.env.RENDER_EXTERNAL_URL;
       console.log(`=======================================================`);
       console.log(`🚀 Zynora RAG Chatbot Server running on port ${PORT}`);
-      console.log(`🔗 Local Address:  http://localhost:${PORT}`);
-      console.log(`🏥 Health Check:   http://localhost:${PORT}/health`);
-      console.log(`📊 API Version:    http://localhost:${PORT}/api/version`);
+      if (publicUrl) {
+        console.log(`🌐 Public URL:    ${publicUrl}`);
+        console.log(`🏥 Health Check:  ${publicUrl}/health`);
+        console.log(`📊 API Version:   ${publicUrl}/api/version`);
+      } else {
+        console.log(`🔗 Local Address: http://localhost:${PORT}`);
+        console.log(`🏥 Health Check:  http://localhost:${PORT}/health`);
+        console.log(`📊 API Version:   http://localhost:${PORT}/api/version`);
+      }
       console.log(`=======================================================`);
 
       logger.info({

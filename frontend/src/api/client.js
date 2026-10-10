@@ -3,7 +3,7 @@
  * Universal API request wrapper with token injection and error parsing.
  */
 
-const API_BASE = '';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('zynora_token');

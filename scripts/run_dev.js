@@ -24,10 +24,25 @@ const frontendProcess = spawn(npmCmd, ['run', 'dev'], {
   shell: true
 });
 
+const { execSync } = require('child_process');
+
+function killProcess(proc) {
+  if (!proc || !proc.pid) return;
+  try {
+    if (isWindows) {
+      execSync(`taskkill /PID ${proc.pid} /T /F 2>nul`, { stdio: 'ignore' });
+    } else {
+      proc.kill('SIGTERM');
+    }
+  } catch (e) {
+    // Process already exited
+  }
+}
+
 function cleanup() {
   console.log('\n🛑 Shutting down backend and frontend services...');
-  if (backendProcess) backendProcess.kill();
-  if (frontendProcess) frontendProcess.kill();
+  killProcess(backendProcess);
+  killProcess(frontendProcess);
   process.exit(0);
 }
 

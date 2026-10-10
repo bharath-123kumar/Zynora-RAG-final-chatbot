@@ -62,7 +62,24 @@ function getVersion(req, res) {
   });
 }
 
+function getRoot(req, res) {
+  return res.status(200).json({
+    name: 'Zynora AI RAG Chatbot API',
+    status: 'ONLINE',
+    version: config.APP_VERSION,
+    environment: config.NODE_ENV,
+    endpoints: {
+      health: '/health',
+      version: '/api/version',
+      chat: '/api/zynora/chat',
+      auth: '/api/auth'
+    },
+    frontendUrl: 'http://localhost:3000'
+  });
+}
+
 module.exports = {
+  getRoot,
   getHealth,
   getVersion
 };

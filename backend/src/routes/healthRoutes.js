@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const healthController = require('../controllers/healthController');
 
+router.get('/', healthController.getRoot);
 router.get('/health', healthController.getHealth);
 router.get('/api/health', healthController.getHealth);
 router.get('/api/version', healthController.getVersion);
