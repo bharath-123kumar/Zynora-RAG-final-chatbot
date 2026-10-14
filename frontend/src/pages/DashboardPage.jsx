@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/dashboard.css';
@@ -7,7 +7,7 @@ const API_BASE = '/api';
 
 function StatCard({ icon, label, value, sub, color }) {
   return (
-    <div className={stat-card stat-card--}>
+    <div className={'stat-card stat-card--' + color}>
       <div className="stat-card__icon">{icon}</div>
       <div className="stat-card__body">
         <div className="stat-card__value">{value}</div>
@@ -27,9 +27,9 @@ function MiniBarChart({ data }) {
         const val = parseInt(d.count || 0, 10);
         const pct = Math.max((val / max) * 100, 4);
         return (
-          <div key={i} className="mini-chart__bar-wrap" title={${d.date_day || ''}: }>
-            <div className="mini-chart__bar" style={{ height: ${pct}% }} />
-            <div className="mini-chart__bar-label">{d.date_day ? d.date_day.slice(5) : Q}</div>
+          <div key={i} className="mini-chart__bar-wrap" title={(d.date_day || '') + ': ' + val}>
+            <div className="mini-chart__bar" style={{ height: pct + '%' }} />
+            <div className="mini-chart__bar-label">{d.date_day ? d.date_day.slice(5) : ('Q' + (i + 1))}</div>
           </div>
         );
       })}
@@ -54,7 +54,7 @@ function DonutChart({ success, fallback, failures, total }) {
         <circle cx="50" cy="50" r={r} fill="none" stroke="#1e2a3a" strokeWidth="12" />
         {segs.map((seg, i) => {
           const dash = (seg.pct / 100) * circ; const gap = circ - dash;
-          const el = <circle key={i} cx="50" cy="50" r={r} fill="none" stroke={seg.color} strokeWidth="12" strokeDasharray={${dash} } strokeDashoffset={-offset} transform="rotate(-90 50 50)" />;
+          const el = <circle key={i} cx="50" cy="50" r={r} fill="none" stroke={seg.color} strokeWidth="12" strokeDasharray={dash + ' ' + gap} strokeDashoffset={-offset} transform="rotate(-90 50 50)" />;
           offset += dash; return el;
         })}
         <text x="50" y="46" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">{s}%</text>
@@ -75,7 +75,7 @@ function DonutChart({ success, fallback, failures, total }) {
 function HealthBadge({ status }) {
   const map = { HEALTHY: { cls: 'healthy', icon: '✅' }, DEGRADED: { cls: 'degraded', icon: '⚠️' }, DOWN: { cls: 'down', icon: '🔴' } };
   const info = map[status] || map.DEGRADED;
-  return <span className={health-badge health-badge--}>{info.icon} {status}</span>;
+  return <span className={'health-badge health-badge--' + info.cls}>{info.icon} {status}</span>;
 }
 
 export default function DashboardPage() {
@@ -91,7 +91,7 @@ export default function DashboardPage() {
     if (!silent) setLoading(true);
     setRefreshing(true);
     try {
-      const res = await fetch(${API_BASE}/monitoring/metrics, { headers: { Authorization: Bearer  } });
+      const res = await fetch(API_BASE + '/monitoring/metrics', { headers: { Authorization: 'Bearer ' + token } });
       if (res.status === 403) { setError('Admin access required.'); return; }
       if (!res.ok) throw new Error('Failed to fetch metrics');
       const data = await res.json();
@@ -126,10 +126,10 @@ export default function DashboardPage() {
             <section className="dashboard__kpi-row">
               <StatCard icon="💬" label="Total Conversations" color="blue" value={metrics.totalConversations.toLocaleString()} sub="All-time sessions" />
               <StatCard icon="❓" label="Questions Asked" color="purple" value={metrics.totalQuestions.toLocaleString()} sub="Across all users" />
-              <StatCard icon="✅" label="Grounded Answers" color="green" value={metrics.successfulAnswers.toLocaleString()} sub={${metrics.totalQuestions > 0 ? Math.round((metrics.successfulAnswers / metrics.totalQuestions) * 100) : 0}% success rate} />
+              <StatCard icon="✅" label="Grounded Answers" color="green" value={metrics.successfulAnswers.toLocaleString()} sub={(metrics.totalQuestions > 0 ? Math.round((metrics.successfulAnswers / metrics.totalQuestions) * 100) : 0) + '% success rate'} />
               <StatCard icon="🛡️" label="Fallback Deflections" color="amber" value={metrics.noAnswerResponses.toLocaleString()} sub="Zero-trust boundary" />
-              <StatCard icon="⚡" label="Avg Response Time" color="cyan" value={${metrics.averageResponseTimeMs}ms} sub="End-to-end latency" />
-              <StatCard icon="🎯" label="Avg Confidence" color="indigo" value={${confidencePct}%} sub="RAG retrieval score" />
+              <StatCard icon="⚡" label="Avg Response Time" color="cyan" value={metrics.averageResponseTimeMs + 'ms'} sub="End-to-end latency" />
+              <StatCard icon="🎯" label="Avg Confidence" color="indigo" value={confidencePct + '%'} sub="RAG retrieval score" />
             </section>
             <section className="dashboard__charts-row">
               <div className="dash-card dash-card--wide">
@@ -143,7 +143,7 @@ export default function DashboardPage() {
               <div className="dash-card">
                 <div className="dash-card__header"><span className="dash-card__title">🎯 Confidence Score</span></div>
                 <div className="gauge-wrap">
-                  <div className="gauge"><div className="gauge__fill" style={{ '--pct': ${confidencePct}% }} /><div className="gauge__value">{confidencePct}%</div></div>
+                  <div className="gauge"><div className="gauge__fill" style={{ '--pct': confidencePct + '%' }} /><div className="gauge__value">{confidencePct}%</div></div>
                   <div className="gauge__labels"><span>0%</span><span>100%</span></div>
                   <p className="gauge__note">Average RAG retrieval confidence across all queries</p>
                 </div>
@@ -154,10 +154,10 @@ export default function DashboardPage() {
                 <div className="dash-card__header"><span className="dash-card__title">🏥 Service Health</span><HealthBadge status={metrics.serviceHealth.status} /></div>
                 <div className="health-grid">
                   <div className="health-item"><span className="health-item__label">Database Engine</span><span className="health-item__value health-item__value--badge">{metrics.serviceHealth.databaseEngine?.toUpperCase()}</span></div>
-                  <div className="health-item"><span className="health-item__label">Database Status</span><span className={health-item__value }>{metrics.serviceHealth.databaseStatus}</span></div>
-                  <div className="health-item"><span className="health-item__label">RAG Pipeline</span><span className={health-item__value }>{metrics.serviceHealth.ragPipelineStatus}</span></div>
+                  <div className="health-item"><span className="health-item__label">Database Status</span><span className={'health-item__value ' + (metrics.serviceHealth.databaseStatus === 'healthy' ? 'text-green' : 'text-red')}>{metrics.serviceHealth.databaseStatus}</span></div>
+                  <div className="health-item"><span className="health-item__label">RAG Pipeline</span><span className={'health-item__value ' + (metrics.serviceHealth.ragPipelineStatus === 'OPERATIONAL' ? 'text-green' : 'text-amber')}>{metrics.serviceHealth.ragPipelineStatus}</span></div>
                   <div className="health-item"><span className="health-item__label">Active Documents</span><span className="health-item__value">{metrics.serviceHealth.activeDocumentsIndexed} indexed</span></div>
-                  <div className="health-item"><span className="health-item__label">Total Errors</span><span className={health-item__value }>{metrics.errorCount}</span></div>
+                  <div className="health-item"><span className="health-item__label">Total Errors</span><span className={'health-item__value ' + (metrics.errorCount > 0 ? 'text-red' : 'text-green')}>{metrics.errorCount}</span></div>
                   <div className="health-item"><span className="health-item__label">Auto-Refresh</span><span className="health-item__value text-green">Every 30s ✓</span></div>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                         <span className="top-questions__rank">#{i + 1}</span>
                         <span className="top-questions__text">{q.question}</span>
                         <span className="top-questions__count">{q.count}×</span>
-                        <span className={	op-questions__badge }>{q.grounded ? '✅ Grounded' : '🛡️ Deflected'}</span>
+                        <span className={'top-questions__badge ' + (q.grounded ? 'grounded' : 'fallback')}>{q.grounded ? '✅ Grounded' : '🛡️ Deflected'}</span>
                       </li>
                     ))}
                   </ol>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                 <div className="dash-card__header"><span className="dash-card__title">📚 Knowledge Base</span></div>
                 {metrics.knowledgeCategories.length === 0 ? <div className="dash-card__empty">No documents indexed.</div> : (
                   <div className="kb-table-wrap"><table className="kb-table"><thead><tr><th>Category</th><th>Status</th><th>Docs</th></tr></thead>
-                  <tbody>{metrics.knowledgeCategories.map((cat, i) => (<tr key={i}><td>{cat.category || '—'}</td><td><span className={status-pill status-pill--}>{cat.status}</span></td><td className="kb-table__count">{cat.count}</td></tr>))}</tbody>
+                  <tbody>{metrics.knowledgeCategories.map((cat, i) => (<tr key={i}><td>{cat.category || '—'}</td><td><span className={'status-pill status-pill--' + (cat.status || '').toLowerCase().replace(/\s+/g, '-')}>{cat.status}</span></td><td className="kb-table__count">{cat.count}</td></tr>))}</tbody>
                   </table></div>
                 )}
               </div>
