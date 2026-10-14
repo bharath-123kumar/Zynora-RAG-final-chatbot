@@ -10,6 +10,7 @@
 const { runRAGSuite } = require('./ragEvaluationSuite');
 const { runSecurityTests } = require('./security.test');
 const { runApiIntegrationTests } = require('./apiIntegration.test');
+const { runDay17Tests } = require('./day17Improvements.test');
 
 async function runAllTests() {
   const startTime = Date.now();
@@ -52,6 +53,17 @@ async function runAllTests() {
     totalFailed += apiResults.failed;
   } catch (err) {
     console.error('Fatal error in API Integration Suite:', err);
+    totalFailed += 10;
+  }
+
+  // 4. Day 17 Improvements Suite
+  try {
+    const day17Results = await runDay17Tests();
+    totalTests += day17Results.total;
+    totalPassed += day17Results.passed;
+    totalFailed += day17Results.failed;
+  } catch (err) {
+    console.error('Fatal error in Day 17 Suite:', err);
     totalFailed += 10;
   }
 

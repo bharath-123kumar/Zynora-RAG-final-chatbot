@@ -22,11 +22,14 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [errorBanner, setErrorBanner] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const isSubmittingRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,6 +38,26 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  // Loading animation step tracker
+  useEffect(() => {
+    if (!loading) {
+      setLoadingStep('');
+      return;
+    }
+    setLoadingStep('Ingesting query and matching approved documents...');
+    const timer1 = setTimeout(() => {
+      setLoadingStep('Calculating BM25 + cosine vector similarity...');
+    }, 450);
+    const timer2 = setTimeout(() => {
+      setLoadingStep('Verifying zero-trust grounding & citations...');
+    }, 900);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [loading]);
 
   // Load user conversations
   const loadConversations = async () => {
@@ -135,12 +158,15 @@ export default function ChatPage() {
     }
   };
 
-  // Send Message
-  const handleSendMessage = async (e) => {
-    if (e) e.preventDefault();
-    const trimmed = inputMessage.trim();
-    if (!trimmed || loading) return;
+  // Send Message with strict duplicate suppression
+  const handleSendMessage = async (textToSend = null) => {
+    if (isSubmittingRef.current || loading) return;
 
+    const trimmed = (textToSend || inputMessage).trim();
+    if (!trimmed) return;
+
+    // Atomic submission lock
+    isSubmittingRef.current = true;
     setErrorBanner(null);
     setInputMessage('');
 
@@ -181,11 +207,31 @@ export default function ChatPage() {
       setErrorBanner(err.message || 'An error occurred while retrieving answer from approved knowledge base.');
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
   const handlePromptClick = (prompt) => {
-    setInputMessage(prompt);
+    handleSendMessage(prompt);
+  };
+
+  // Export / Copy Transcript
+  const handleExportTranscript = () => {
+    if (messages.length === 0) return;
+
+    const transcript = messages.map(m => {
+      const header = m.role === 'user' ? '👤 OPERATOR' : '🤖 ZYNORA AI';
+      let body = `${header} (${new Date(m.createdAt).toLocaleTimeString()}):\n${m.content}`;
+      if (m.sources && m.sources.length > 0) {
+        body += '\n\nCITED SOURCES:\n' + m.sources.map(s => ` - [${s.documentTitle}] Section: ${s.section} (Match: ${Math.round((s.relevanceScore || 0) * 100)}%)`).join('\n');
+      }
+      return body;
+    }).join('\n\n' + '='.repeat(60) + '\n\n');
+
+    navigator.clipboard.writeText(transcript).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2500);
+    });
   };
 
   return (
@@ -210,12 +256,13 @@ export default function ChatPage() {
               onClick={() => setSidebarOpen(true)}
               style={{ padding: '6px 10px' }}
               title="Open Navigation"
+              aria-label="Open Navigation"
             >
               ☰
             </button>
             <div>
               <div className="chat-active-title">
-                {currentConversation ? currentConversation.title : 'New Inquiry'}
+                {currentConversation ? currentConversation.title : 'Operational Inquiry'}
               </div>
               {currentConversation && (
                 <span className="chat-id-tag">
@@ -226,9 +273,20 @@ export default function ChatPage() {
           </div>
 
           <div className="chat-header-actions">
-            <span style={{ fontSize: '0.78rem', color: '#38bdf8', background: 'rgba(6, 182, 212, 0.1)', padding: '4px 10px', borderRadius: 'var(--radius-full)', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+            <span className="badge-grounded-status">
               🔒 Zero-Trust Grounded AI
             </span>
+
+            {messages.length > 0 && (
+              <button
+                className="btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                onClick={handleExportTranscript}
+                title="Copy conversation transcript to clipboard"
+              >
+                {copyFeedback ? '✓ Copied Transcript' : '📤 Export'}
+              </button>
+            )}
 
             {activeConversationId && messages.length > 0 && (
               <button
@@ -245,16 +303,15 @@ export default function ChatPage() {
 
         {/* Error Banner */}
         {errorBanner && (
-          <div style={{
-            margin: '12px 24px 0',
-            padding: '10px 16px',
-            background: 'rgba(244, 63, 94, 0.15)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: '#fda4af',
-            fontSize: '0.85rem'
-          }}>
-            ⚠️ {errorBanner}
+          <div className="chat-error-banner">
+            <span>⚠️ {errorBanner}</span>
+            <button 
+              className="chat-error-dismiss"
+              onClick={() => setErrorBanner(null)}
+              title="Dismiss"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -265,17 +322,21 @@ export default function ChatPage() {
               <div className="welcome-icon">💬</div>
               <h2 className="welcome-title">How can Zynora assist your operations today?</h2>
               <p className="welcome-desc">
-                Zynora answers strictly from verified, approved Zyngram documentation. All responses include source citations and grounded confidence scores.
+                Zynora synthesizes strictly from verified, approved Zyngram documentation. All answers feature auditable citations, grounded confidence metrics, and knowledge-boundary protection.
               </p>
 
+              <div className="sample-prompts-label">CLICK A SAMPLE INQUIRY TO EXECUTE:</div>
               <div className="sample-prompts">
                 {SAMPLE_PROMPTS.map((prompt, idx) => (
                   <button
                     key={idx}
                     className="prompt-card"
                     onClick={() => handlePromptClick(prompt)}
+                    disabled={loading}
+                    title="Run sample inquiry"
                   >
-                    👉 {prompt}
+                    <span className="prompt-arrow">👉</span>
+                    <span>{prompt}</span>
                   </button>
                 ))}
               </div>
@@ -291,10 +352,15 @@ export default function ChatPage() {
               <div className="brand-icon" style={{ width: 36, height: 36, fontSize: '1rem' }}>
                 Z
               </div>
-              <div className="typing-indicator">
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
+              <div className="typing-indicator-box">
+                <div className="typing-indicator-dots">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                </div>
+                <div className="typing-status-text">
+                  {loadingStep || 'Retrieving approved knowledge...'}
+                </div>
               </div>
             </div>
           )}
@@ -304,10 +370,17 @@ export default function ChatPage() {
 
         {/* Input Bar */}
         <div className="chat-input-bar">
-          <form className="chat-input-form" onSubmit={handleSendMessage}>
+          <form 
+            className="chat-input-form" 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+          >
             <textarea
               className="chat-textarea"
               value={inputMessage}
+              disabled={loading}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -315,20 +388,26 @@ export default function ChatPage() {
                   handleSendMessage();
                 }
               }}
-              placeholder="Ask a question regarding franchise hierarchy, transit, policies, or services..."
+              placeholder={loading ? "Generating grounded answer..." : "Ask a question regarding franchise hierarchy, transit, policies, or services..."}
               rows={1}
+              aria-label="Ask a question"
             />
             <button
               type="submit"
               className="btn-send"
               disabled={loading || !inputMessage.trim()}
-              title="Send Message"
+              title={loading ? "Processing..." : "Send Message"}
+              aria-label="Send Message"
             >
-              ➤
+              {loading ? (
+                <span className="spinner-inline" />
+              ) : (
+                '➤'
+              )}
             </button>
           </form>
           <div className="input-disclaimer">
-            Zynora retrieves strictly approved knowledge. Unapproved drafts and general internet knowledge are excluded.
+            Zero-Trust Policy: Unapproved drafts, archived docs, and external hallucinations are strictly excluded.
           </div>
         </div>
       </main>

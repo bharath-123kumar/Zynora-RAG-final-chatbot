@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import SourceCard from './SourceCard';
 
+const FALLBACK_MESSAGE = "I couldn't find this information in the approved Zyngram knowledge base.";
+
 export default function MessageBubble({ message }) {
   const [sourcesOpen, setSourcesOpen] = useState(true);
+  const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
+  const isFallback = !isUser && message.content === FALLBACK_MESSAGE;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className={`message-wrapper ${isUser ? 'user' : 'assistant'}`}>
@@ -13,8 +24,21 @@ export default function MessageBubble({ message }) {
         </div>
       )}
 
-      <div className="message-bubble">
-        <div style={{ whiteSpace: 'pre-wrap' }}>
+      <div className={`message-bubble ${isFallback ? 'fallback-bubble' : ''}`}>
+        {/* Knowledge Boundary Banner */}
+        {isFallback && (
+          <div className="boundary-callout">
+            <div className="boundary-callout-header">
+              <span className="boundary-icon">🛡️</span>
+              <span className="boundary-title">Zero-Trust Knowledge Boundary Active</span>
+            </div>
+            <p className="boundary-text">
+              This query cannot be answered from verified Zyngram documentation. External speculation and hallucinations are strictly deflected.
+            </p>
+          </div>
+        )}
+
+        <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
           {message.content}
         </div>
 
@@ -36,6 +60,14 @@ export default function MessageBubble({ message }) {
                   ✓ Grounded Answer
                 </span>
               )}
+              <button 
+                className="btn-copy-action"
+                onClick={handleCopy}
+                title="Copy response text"
+                aria-label="Copy response text"
+              >
+                {copied ? '✓ Copied' : '📋 Copy'}
+              </button>
             </div>
 
             {message.sources && message.sources.length > 0 && (
@@ -44,15 +76,23 @@ export default function MessageBubble({ message }) {
                   className="sources-header"
                   onClick={() => setSourcesOpen(!sourcesOpen)}
                   title="Toggle source citations"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSourcesOpen(!sourcesOpen);
+                    }
+                  }}
                 >
                   <span>📚 Verified Sources ({message.sources.length})</span>
-                  <span style={{ fontSize: '0.7rem' }}>{sourcesOpen ? '▲' : '▼'}</span>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>{sourcesOpen ? '▲ Collapse' : '▼ Expand'}</span>
                 </div>
 
                 {sourcesOpen && (
                   <div className="sources-grid">
                     {message.sources.map((src, idx) => (
-                      <SourceCard key={src.id || idx} source={src} />
+                      <SourceCard key={src.id || src.chunkId || idx} source={src} />
                     ))}
                   </div>
                 )}

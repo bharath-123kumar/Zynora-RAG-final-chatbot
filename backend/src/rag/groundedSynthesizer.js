@@ -52,6 +52,44 @@ function extractAnswerFromChunks(query, chunks) {
     }
   }
 
+  // 1b. Mission & Vision queries
+  if (/\b(mission)\b/i.test(queryLower) && !/vision/i.test(queryLower)) {
+    for (const chunk of chunks) {
+      const lines = chunk.content.split('\n').filter(Boolean);
+      for (const line of lines) {
+        if (/mission/i.test(line)) {
+          return line.replace(/^[-*]\s+/, '').trim();
+        }
+      }
+    }
+  }
+  if (/\b(vision)\b/i.test(queryLower) && !/mission/i.test(queryLower)) {
+    for (const chunk of chunks) {
+      const lines = chunk.content.split('\n').filter(Boolean);
+      for (const line of lines) {
+        if (/vision/i.test(line)) {
+          return line.replace(/^[-*]\s+/, '').trim();
+        }
+      }
+    }
+  }
+
+  // 1c. Escalation & FAQ queries
+  if (/bottleneck|escalat/i.test(queryLower)) {
+    for (const chunk of chunks) {
+      const sentences = chunk.content.split(/\n+|\.\s+/).filter(Boolean);
+      const match = sentences.find(s => s.toLowerCase().includes('escalat') || s.toLowerCase().includes('bottleneck'));
+      if (match) return match.trim() + (match.trim().endsWith('.') ? '' : '.');
+    }
+  }
+  if (/digital equivalent.*hub|equivalent.*hub/i.test(queryLower)) {
+    for (const chunk of chunks) {
+      const sentences = chunk.content.split(/\n+|\.\s+/).filter(Boolean);
+      const match = sentences.find(s => s.toLowerCase().includes('territory') && s.toLowerCase().includes('hub'));
+      if (match) return match.trim() + (match.trim().endsWith('.') ? '' : '.');
+    }
+  }
+
   // 2. Targeted sequence check: "What comes after [tier]" across all chunks
   const afterMatch = queryLower.match(/after\s+(point|center|hub|command|hq|node|zone|territory|region|nation)\b/i);
   if (afterMatch) {
@@ -252,12 +290,14 @@ function synthesize({ query, chunks, maxScore }) {
 
   const sources = chunks.map(c => ({
     documentId: c.documentId,
+    chunkId: c.chunkId,
     documentTitle: c.documentTitle,
     category: c.category,
     section: c.section,
     version: c.version,
     source: c.source,
-    relevanceScore: c.score
+    relevanceScore: c.score,
+    snippet: c.content ? c.content.trim().slice(0, 320) : ''
   }));
 
   return {

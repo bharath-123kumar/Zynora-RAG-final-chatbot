@@ -108,8 +108,8 @@ async function handleChat(req, res) {
         for (const src of synthesisResult.sources) {
           const srcId = uuidv4();
           await db.query(
-            `INSERT INTO source_references (id, message_id, document_id, chunk_id, document_title, category, section, version, relevance_score, source, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            `INSERT INTO source_references (id, message_id, document_id, chunk_id, document_title, category, section, version, relevance_score, source, snippet, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
               srcId,
               assistantMsgId,
@@ -121,6 +121,7 @@ async function handleChat(req, res) {
               src.version,
               src.relevanceScore,
               src.source,
+              src.snippet || null,
               nowIso
             ]
           );

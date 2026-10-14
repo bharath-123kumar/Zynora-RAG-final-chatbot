@@ -128,7 +128,7 @@ async function getConversation(req, res) {
     const messages = [];
     for (const msg of msgRes.rows) {
       const sourceRes = await db.query(
-        `SELECT id, document_id, chunk_id, document_title, category, section, version, relevance_score, source
+        `SELECT id, document_id, chunk_id, document_title, category, section, version, relevance_score, source, snippet
          FROM source_references
          WHERE message_id = $1`,
         [msg.id]
