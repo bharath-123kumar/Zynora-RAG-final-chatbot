@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
+import DashboardPage from './pages/DashboardPage';
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -48,6 +49,14 @@ export default function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <DashboardPage />
               </ProtectedRoute>
             }
           />

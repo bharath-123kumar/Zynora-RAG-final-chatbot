@@ -160,6 +160,16 @@ export default function Sidebar({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {isAdmin && (
               <Link 
+                to="/dashboard" 
+                className="btn-secondary" 
+                style={{ padding: '6px 10px', fontSize: '0.75rem', background: 'rgba(139,92,246,0.15)', color: '#c4b5fd', borderColor: 'rgba(139,92,246,0.3)' }}
+                title="Live System Dashboard — Day 17"
+              >
+                ⚡ Live
+              </Link>
+            )}
+            {isAdmin && (
+              <Link 
                 to="/admin" 
                 className="btn-secondary" 
                 style={{ padding: '6px 10px', fontSize: '0.75rem' }}
