@@ -16,7 +16,8 @@
     "test:rag": "node tests/ragEvaluationSuite.js",
     "test:security": "node tests/security.test.js",
     "test:api": "node tests/apiIntegration.test.js",
-    "test:day17": "node tests/day17Improvements.test.js"
+    "test:day17": "node tests/day17Improvements.test.js",
+    "test:day18": "node tests/day18Improvements.test.js"
   },
   "keywords": [
     "rag",

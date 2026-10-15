@@ -169,15 +169,27 @@ async function handleChat(req, res) {
       }
     });
 
-    // 8. Return response
+    // 8. Safely validate and normalize sources
+    const normalizedSources = (synthesisResult.sources || []).map(src => ({
+      documentId: src.documentId || src.document_id || '',
+      chunkId: src.chunkId || src.chunk_id || '',
+      documentTitle: src.documentTitle || src.document_title || 'Zyngram Document',
+      category: src.category || 'Knowledge Base',
+      section: src.section || 'General',
+      version: src.version || '1.0',
+      source: src.source || '',
+      relevanceScore: typeof src.relevanceScore === 'number' ? src.relevanceScore : (parseFloat(src.relevance_score) || 0),
+      snippet: src.snippet || ''
+    }));
+
     return res.status(200).json({
       success: true,
       answer: synthesisResult.answer,
-      sources: synthesisResult.sources,
-      grounded: synthesisResult.grounded,
+      sources: normalizedSources,
+      grounded: Boolean(synthesisResult.grounded),
       retrievedChunks: chunks.map(c => ({
-        chunkId: c.chunkId,
-        documentTitle: c.documentTitle,
+        chunkId: c.chunkId || c.chunk_id,
+        documentTitle: c.documentTitle || c.document_title,
         category: c.category,
         section: c.section,
         score: c.score

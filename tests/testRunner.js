@@ -11,12 +11,13 @@ const { runRAGSuite } = require('./ragEvaluationSuite');
 const { runSecurityTests } = require('./security.test');
 const { runApiIntegrationTests } = require('./apiIntegration.test');
 const { runDay17Tests } = require('./day17Improvements.test');
+const { runDay18Tests } = require('./day18Improvements.test');
 
 async function runAllTests() {
   const startTime = Date.now();
   console.log('╔════════════════════════════════════════════════════════════╗');
   console.log('║       ZYNORA AI RAG CHATBOT — AUTOMATED TEST RUNNER        ║');
-  console.log('║      Day 11, 12, 13, 14 Specification Compliance Suite     ║');
+  console.log('║   Day 11, 12, 13, 14, 17, 18 Specification Compliance Suite║');
   console.log('╚════════════════════════════════════════════════════════════╝');
 
   let totalTests = 0;
@@ -64,6 +65,17 @@ async function runAllTests() {
     totalFailed += day17Results.failed;
   } catch (err) {
     console.error('Fatal error in Day 17 Suite:', err);
+    totalFailed += 10;
+  }
+
+  // 5. Day 18 Improvements Suite
+  try {
+    const day18Results = await runDay18Tests();
+    totalTests += day18Results.total;
+    totalPassed += day18Results.passed;
+    totalFailed += day18Results.failed;
+  } catch (err) {
+    console.error('Fatal error in Day 18 Suite:', err);
     totalFailed += 10;
   }
 

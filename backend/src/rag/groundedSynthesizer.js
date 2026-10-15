@@ -107,7 +107,13 @@ function extractAnswerFromChunks(query, chunks) {
 
   // 3. Targeted definition queries: Point, Center, Hub, Command, HQ, Node, Zone, Territory, Region, Nation
   const tierMatch = queryLower.match(/\b(point|center|hub|command|hq|node|zone|territory|region|nation)\b/i);
-  if (tierMatch && !/hierarchy|structure|explain/i.test(queryLower)) {
+  const isTierDefinitionQuery = tierMatch && (
+    /\b(what is( a)?|what does( a)?|define|describe|explain|details on|role of|purpose of|function of)\s+(point|center|hub|command|hq|node|zone|territory|region|nation)\b/i.test(queryLower) ||
+    /\b(point|center|hub|command|hq|node|zone|territory|region|nation)\s+(definition|overview|role|tier|function)\b/i.test(queryLower) ||
+    queryLower.trim().split(/\s+/).length <= 4
+  );
+
+  if (isTierDefinitionQuery && !/hierarchy|structure/i.test(queryLower)) {
     const term = tierMatch[1].toLowerCase();
     for (const chunk of chunks) {
       const lines = chunk.content.split('\n').filter(Boolean);
@@ -165,10 +171,8 @@ function extractAnswerFromChunks(query, chunks) {
   }
   if (/zynora|rag intelligence/i.test(queryLower)) {
     for (const chunk of chunks) {
-      if (chunk.content.toLowerCase().includes('zynora')) {
-        const lines = chunk.content.split('\n\n').filter(Boolean);
-        const match = lines.find(l => l.toLowerCase().includes('zynora'));
-        if (match) return match.trim();
+      if (chunk.content.toLowerCase().includes('zynora') || (chunk.section && /zynora|rag intelligence/i.test(chunk.section))) {
+        return chunk.content.trim();
       }
     }
   }
@@ -223,10 +227,7 @@ function extractAnswerFromChunks(query, chunks) {
     return bestSentences.join(' ');
   }
 
-  if (topChunk.content.trim().length > 0) {
-    return topChunk.content.trim();
-  }
-
+  // Do not fall back to dumping the entire chunk if zero query sentences matched
   return null;
 }
 
@@ -244,13 +245,18 @@ function synthesize({ query, chunks, maxScore }) {
   const queryTokens = tokenize(query);
   const allChunkText = chunks.map(c => `${c.documentTitle} ${c.section} ${c.content}`).join(' ').toLowerCase();
 
-  const specificKeywords = queryTokens.filter(t => 
-    ['stock', 'apple', 'nasdaq', 'commission', 'percentages', '2030', 'weather', 'tokyo', 'prime', 'minister', 'australia', 'recipe', 'cookie', 'cookies', 'cost', 'discount', 'fedex', 'bonus', 'big', 'small', 'stuff'].includes(t)
-  );
+  // Strict fallback check for known out-of-domain terms and foreign entities
+  const absentKeywords = [
+    'stock', 'apple', 'nasdaq', 'commission', 'percentages', '2030', 'weather', 'tokyo', 
+    'prime', 'minister', 'australia', 'recipe', 'cookie', 'cookies', 'cost', 'discount', 
+    'fedex', 'bonus', 'big', 'small', 'stuff', 'banana', 'pizza', 'crypto', 'bitcoin', 'binance',
+    'president', 'paris', 'france', 'spacex', 'tesla'
+  ];
 
-  if (specificKeywords.length > 0) {
-    const hasAnySpecific = specificKeywords.some(kw => allChunkText.includes(kw));
-    if (!hasAnySpecific) {
+  const detectedAbsent = queryTokens.filter(t => absentKeywords.includes(t));
+  if (detectedAbsent.length > 0) {
+    const hasAny = detectedAbsent.some(kw => allChunkText.includes(kw));
+    if (!hasAny) {
       return {
         answer: FALLBACK_MESSAGE,
         sources: [],
@@ -288,17 +294,33 @@ function synthesize({ query, chunks, maxScore }) {
 
   const confidenceScore = Math.min(1.0, Math.max(0.0, Math.round(((maxScore * 0.7) + (ratio * 0.3)) * 100) / 100));
 
-  const sources = chunks.map(c => ({
-    documentId: c.documentId,
-    chunkId: c.chunkId,
-    documentTitle: c.documentTitle,
-    category: c.category,
-    section: c.section,
-    version: c.version,
-    source: c.source,
-    relevanceScore: c.score,
-    snippet: c.content ? c.content.trim().slice(0, 320) : ''
-  }));
+  // Normalize and deduplicate source citations (avoid repeating duplicate chunks for the same section)
+  const seenSourceKeys = new Set();
+  const sources = [];
+
+  for (const c of chunks) {
+    const docTitle = c.documentTitle || c.document_title || 'Zyngram Knowledge Document';
+    const section = c.section || 'General';
+    const key = `${docTitle}:::${section}`;
+
+    if (seenSourceKeys.has(key)) continue;
+    seenSourceKeys.add(key);
+
+    const rawSnippet = (c.content || c.snippet || '').trim();
+    const cleanSnippet = rawSnippet.slice(0, 320);
+
+    sources.push({
+      documentId: c.documentId || c.document_id || '',
+      chunkId: c.chunkId || c.chunk_id || '',
+      documentTitle: docTitle,
+      category: c.category || 'Knowledge Base',
+      section: section,
+      version: c.version || '1.0',
+      source: c.source || '',
+      relevanceScore: typeof c.score === 'number' ? Math.round(c.score * 1000) / 1000 : (c.relevanceScore || 0),
+      snippet: cleanSnippet
+    });
+  }
 
   return {
     answer: candidateAnswer,

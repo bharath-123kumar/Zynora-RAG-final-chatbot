@@ -1,20 +1,48 @@
 import React, { useState } from 'react';
 
+/**
+ * SourceCard.jsx
+ * Displays verified, auditable knowledge citations supporting each RAG response.
+ * Defensively handles camelCase and snake_case properties from live chat and historical DB rows.
+ * Features chunk references, readable excerpt accordion with bounded scrolling, and one-click citation copying.
+ */
 export default function SourceCard({ source }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (!source) return null;
+  if (!source || typeof source !== 'object') {
+    return null;
+  }
 
-  const scorePct = source.relevanceScore !== undefined ? Math.round(source.relevanceScore * 100) : null;
+  // Defensive normalization of live API and historical database properties
+  const documentTitle = source.documentTitle || source.document_title || 'Zyngram Knowledge Document';
+  const section = source.section || 'General Specifications';
+  const version = source.version || '1.0';
+  const category = source.category || 'Approved Knowledge';
+  const rawScore = source.relevanceScore !== undefined ? source.relevanceScore : source.relevance_score;
+  const scorePct = rawScore !== undefined && rawScore !== null && !isNaN(Number(rawScore)) 
+    ? Math.round(Number(rawScore) * 100) 
+    : null;
+  const chunkId = source.chunkId || source.chunk_id || null;
+  const snippet = (source.snippet || '').trim();
 
   const handleCopyCitation = (e) => {
     e.stopPropagation();
-    const citation = `Source: "${source.documentTitle}", Section: ${source.section || 'General'} (Ver ${source.version || '1.0'}) - Zyngram Approved Knowledge Base`;
-    navigator.clipboard.writeText(citation).then(() => {
+    const chunkTag = chunkId ? ` [Chunk #${chunkId.substring(0, 8)}]` : '';
+    const citation = `Source: "${documentTitle}", Section: ${section} (Ver ${version})${chunkTag} — Zyngram Approved Knowledge Base`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(citation).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    } else {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
   return (
@@ -24,6 +52,7 @@ export default function SourceCard({ source }) {
       title="Click to view verified excerpt"
       role="button"
       tabIndex={0}
+      aria-expanded={expanded}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -32,32 +61,39 @@ export default function SourceCard({ source }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div className="source-title">{source.documentTitle || 'Zyngram Document'}</div>
+        <div className="source-title" title={documentTitle}>
+          📄 {documentTitle}
+        </div>
         <button
           className="btn-copy-citation"
           onClick={handleCopyCitation}
-          title="Copy Citation"
+          title="Copy verified citation to clipboard"
           aria-label="Copy Citation"
         >
           {copied ? '✓ Copied' : '📋'}
         </button>
       </div>
 
-      {source.section && (
-        <div className="source-section">
-          📁 Section: <strong>{source.section}</strong>
+      <div className="source-section">
+        📁 Section: <strong>{section}</strong>
+      </div>
+
+      {chunkId && (
+        <div className="source-chunk-ref" title={`Full Chunk ID: ${chunkId}`}>
+          🔖 Chunk Ref: <code>#{chunkId.substring(0, 8)}</code>
         </div>
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
         <span className="source-badge">
-          {source.category || 'Knowledge Base'}
+          {category}
         </span>
         {scorePct !== null && (
           <span 
+            className="source-match-score"
             style={{ 
-              fontSize: '0.72rem', 
-              color: scorePct > 60 ? '#34d399' : '#38bdf8', 
+              fontSize: '0.74rem', 
+              color: scorePct >= 70 ? '#34d399' : '#38bdf8', 
               fontFamily: 'var(--font-mono)',
               fontWeight: 600
             }}
@@ -67,24 +103,26 @@ export default function SourceCard({ source }) {
         )}
       </div>
 
-      {/* Snippet Accordion */}
-      {source.snippet && (
+      {/* Snippet Accordion with readable bounded preview */}
+      {snippet ? (
         <div className="source-snippet-toggle">
           <span>{expanded ? '▲ Hide Excerpt' : '▼ View Verified Excerpt'}</span>
         </div>
+      ) : (
+        <div className="source-snippet-toggle" style={{ opacity: 0.6 }}>
+          <span>Excerpt not indexed for this section</span>
+        </div>
       )}
 
-      {expanded && source.snippet && (
+      {expanded && snippet && (
         <div className="source-snippet-box">
           <div className="source-snippet-label">VERIFIED APPROVED EXCERPT:</div>
           <div className="source-snippet-content">
-            "{source.snippet}"
+            "{snippet}"
           </div>
-          {source.version && (
-            <div className="source-snippet-footer">
-              Approved Knowledge Base • Version {source.version}
-            </div>
-          )}
+          <div className="source-snippet-footer">
+            Approved Knowledge Base • Version {version} {chunkId ? `• ID ${chunkId.substring(0, 8)}` : ''}
+          </div>
         </div>
       )}
     </div>

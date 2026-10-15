@@ -134,15 +134,28 @@ async function getConversation(req, res) {
         [msg.id]
       );
 
+      const normalizedSources = sourceRes.rows.map(row => ({
+        id: row.id,
+        documentId: row.document_id,
+        chunkId: row.chunk_id,
+        documentTitle: row.document_title || 'Zyngram Document',
+        category: row.category || 'Knowledge Base',
+        section: row.section || 'General',
+        version: row.version || '1.0',
+        relevanceScore: row.relevance_score !== null && row.relevance_score !== undefined ? parseFloat(row.relevance_score) : 0,
+        source: row.source || '',
+        snippet: row.snippet || ''
+      }));
+
       messages.push({
         id: msg.id,
         role: msg.role,
         content: msg.content,
         grounded: msg.grounded,
-        confidenceScore: msg.confidence_score,
+        confidenceScore: msg.confidence_score !== null && msg.confidence_score !== undefined ? parseFloat(msg.confidence_score) : null,
         responseTimeMs: msg.response_time_ms,
         createdAt: msg.created_at,
-        sources: sourceRes.rows
+        sources: normalizedSources
       });
     }
 

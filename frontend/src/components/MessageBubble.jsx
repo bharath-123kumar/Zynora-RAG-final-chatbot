@@ -6,14 +6,26 @@ const FALLBACK_MESSAGE = "I couldn't find this information in the approved Zyngr
 export default function MessageBubble({ message }) {
   const [sourcesOpen, setSourcesOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  if (!message) return null;
+
   const isUser = message.role === 'user';
   const isFallback = !isUser && message.content === FALLBACK_MESSAGE;
+  const sources = Array.isArray(message.sources) ? message.sources : [];
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content).then(() => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(message.content || '').then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    } else {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
   return (
@@ -25,7 +37,7 @@ export default function MessageBubble({ message }) {
       )}
 
       <div className={`message-bubble ${isFallback ? 'fallback-bubble' : ''}`}>
-        {/* Knowledge Boundary Banner */}
+        {/* Zero-Trust Knowledge Boundary Banner for Fallbacks */}
         {isFallback && (
           <div className="boundary-callout">
             <div className="boundary-callout-header">
@@ -33,15 +45,17 @@ export default function MessageBubble({ message }) {
               <span className="boundary-title">Zero-Trust Knowledge Boundary Active</span>
             </div>
             <p className="boundary-text">
-              This query cannot be answered from verified Zyngram documentation. External speculation and hallucinations are strictly deflected.
+              This query cannot be answered from verified Zyngram documentation. External speculation, competitors, and unapproved claims are strictly deflected.
             </p>
           </div>
         )}
 
+        {/* Message Content */}
         <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-          {message.content}
+          {message.content || ''}
         </div>
 
+        {/* Assistant Metadata & Verification Section */}
         {!isUser && (
           <>
             <div className="message-meta">
@@ -70,7 +84,8 @@ export default function MessageBubble({ message }) {
               </button>
             </div>
 
-            {message.sources && message.sources.length > 0 && (
+            {/* Clearly Labeled Sources Section */}
+            {!isFallback && (
               <div className="sources-container">
                 <div 
                   className="sources-header"
@@ -78,6 +93,7 @@ export default function MessageBubble({ message }) {
                   title="Toggle source citations"
                   role="button"
                   tabIndex={0}
+                  aria-expanded={sourcesOpen}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -85,16 +101,31 @@ export default function MessageBubble({ message }) {
                     }
                   }}
                 >
-                  <span>📚 Verified Sources ({message.sources.length})</span>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>{sourcesOpen ? '▲ Collapse' : '▼ Expand'}</span>
+                  <span className="sources-header-title">
+                    📚 Verified Sources {sources.length > 0 ? `(${sources.length})` : ''}
+                  </span>
+                  {sources.length > 0 && (
+                    <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                      {sourcesOpen ? '▲ Collapse' : '▼ Expand'}
+                    </span>
+                  )}
                 </div>
 
                 {sourcesOpen && (
-                  <div className="sources-grid">
-                    {message.sources.map((src, idx) => (
-                      <SourceCard key={src.id || src.chunkId || idx} source={src} />
-                    ))}
-                  </div>
+                  sources.length > 0 ? (
+                    <div className="sources-grid">
+                      {sources.map((src, idx) => (
+                        <SourceCard 
+                          key={src.id || src.chunkId || src.chunk_id || `src_${idx}`} 
+                          source={src} 
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="sources-empty-notice">
+                      <span>ℹ️ Source citation details unavailable for this response.</span>
+                    </div>
+                  )
                 )}
               </div>
             )}

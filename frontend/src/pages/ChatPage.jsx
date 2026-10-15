@@ -223,7 +223,14 @@ export default function ChatPage() {
       const header = m.role === 'user' ? '👤 OPERATOR' : '🤖 ZYNORA AI';
       let body = `${header} (${new Date(m.createdAt).toLocaleTimeString()}):\n${m.content}`;
       if (m.sources && m.sources.length > 0) {
-        body += '\n\nCITED SOURCES:\n' + m.sources.map(s => ` - [${s.documentTitle}] Section: ${s.section} (Match: ${Math.round((s.relevanceScore || 0) * 100)}%)`).join('\n');
+        body += '\n\nCITED APPROVED SOURCES:\n' + m.sources.map(s => {
+          const title = s.documentTitle || s.document_title || 'Approved Knowledge Document';
+          const sec = s.section || 'General';
+          const score = s.relevanceScore !== undefined ? s.relevanceScore : (s.relevance_score || 0);
+          const chunk = s.chunkId || s.chunk_id;
+          const chunkTag = chunk ? ` [Chunk #${chunk.substring(0, 8)}]` : '';
+          return ` - [${title}] Section: ${sec}${chunkTag} (Match: ${Math.round(score * 100)}%)`;
+        }).join('\n');
       }
       return body;
     }).join('\n\n' + '='.repeat(60) + '\n\n');
