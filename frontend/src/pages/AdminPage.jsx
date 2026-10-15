@@ -3,12 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import KnowledgeManager from '../components/KnowledgeManager';
 import MonitoringDashboard from '../components/MonitoringDashboard';
+import RAGInspector from '../components/RAGInspector';
 import '../styles/admin.css';
 
 export default function AdminPage() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('knowledge'); // 'knowledge' | 'monitoring'
+  const [activeTab, setActiveTab] = useState('knowledge'); // 'knowledge' | 'monitoring' | 'inspector'
 
   if (!isAdmin) {
     return (
@@ -43,6 +44,19 @@ export default function AdminPage() {
             >
               📊 Monitoring & Analytics
             </button>
+            <button 
+              className={`admin-tab ${activeTab === 'inspector' ? 'active' : ''}`}
+              onClick={() => setActiveTab('inspector')}
+              style={{ position: 'relative' }}
+            >
+              🔍 RAG Inspector
+              <span style={{
+                position: 'absolute', top: -6, right: -6,
+                background: '#6366f1', color: '#fff',
+                fontSize: '0.55rem', fontWeight: 800, padding: '1px 5px',
+                borderRadius: 99, letterSpacing: '0.05em'
+              }}>NEW</span>
+            </button>
           </div>
         </div>
 
@@ -59,8 +73,10 @@ export default function AdminPage() {
       <main className="admin-content">
         {activeTab === 'knowledge' ? (
           <KnowledgeManager />
-        ) : (
+        ) : activeTab === 'monitoring' ? (
           <MonitoringDashboard />
+        ) : (
+          <RAGInspector />
         )}
       </main>
     </div>

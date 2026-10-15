@@ -10,6 +10,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const knowledgeRoutes = require('./routes/knowledgeRoutes');
 const monitoringRoutes = require('./routes/monitoringRoutes');
+const inspectorRoutes = require('./routes/inspectorRoutes');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/zynora', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/admin', inspectorRoutes);
 
 // Error Handling
 app.use(notFoundHandler);
